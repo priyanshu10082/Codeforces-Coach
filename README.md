@@ -2,7 +2,7 @@
 
 A personal competitive programming mentor. Enter a Codeforces handle and get a data-driven breakdown of strengths and weaknesses, a personalized AI-generated coaching report, and a curated list of practice problems targeted at your current level.
 
-**Live demo:** _coming soon_
+**Live demo:** https://codeforces-coach.streamlit.app
 
 ---
 
@@ -19,18 +19,18 @@ A personal competitive programming mentor. Enter a Codeforces handle and get a d
 
 ```
 ┌─────────────────┐        HTTP         ┌──────────────────┐
-│  Streamlit UI    │  ───────────────►  │  FastAPI backend  │
-│  (app.py)        │  ◄───────────────  │  (main.py)         │
-└─────────────────┘                     └──────────┬────────┘
-                                                     │
-                       ┌─────────────────────────────┼───────────────────────┐
-                       │                             │                       │
-                ┌──────▼──────┐            ┌─────────▼────────┐    ┌─────────▼────────┐
-                │ Codeforces   │            │  Analysis /       │    │  Groq LLM         │
-                │ API          │            │  Recommendation    │    │  (via LangChain)   │
-                │ (cf_api.py)  │            │  (analyzer.py,      │    │  (ai_coach.py)     │
-                └──────────────┘            │   recommender.py)   │    └────────────────────┘
-                                             └─────────────────────┘
+│  Streamlit UI   │  ───────────────►   │  FastAPI backend │
+│  (app.py)       │  ◄───────────────   │  (main.py)       │
+└─────────────────┘                     └────────┬─────────┘
+                                                 │
+                       ┌─────────────────────────┼────────────────────────────────┐
+                       │                         │                                │
+                ┌──────▼──────┐          ┌───────▼───────────┐          ┌─────────▼────────┐
+                │ Codeforces  │          │  Analysis /       │          │  Groq LLM        │
+                │ API         │          │  Recommendation   │          │  (via LangChain) │
+                │ (cf_api.py) │          │  (analyzer.py,    │          │  (ai_coach.py)   │
+                └─────────────┘          │   recommender.py) │          └──────────────────┘
+                                         └───────────────────┘
 ```
 
 The frontend has no direct knowledge of Codeforces, the analysis logic, or the LLM — it only knows the backend's URL and the shape of the JSON it returns. This means the backend could serve any other frontend (a future React app, a CLI, etc.) without modification.
@@ -69,7 +69,7 @@ The frontend has no direct knowledge of Codeforces, the analysis logic, or the L
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/<your-username>/Codeforces-Coach.git
+git clone https://github.com//Codeforces-Coach.git
 cd Codeforces-Coach
 ```
 
@@ -86,10 +86,8 @@ pip install -r requirements.txt
 ```
 
 ### 4. Set environment variables
-Create a `.env` file in the project root:
-```
+Create a `.env` file in the project root (this is only needed by the backend):
 GROQ_API_KEY=your_groq_api_key_here
-```
 
 ### 5. Run the backend
 ```bash
@@ -101,7 +99,7 @@ uvicorn main:app --reload
 streamlit run app.py
 ```
 
-The app will be available at `http://localhost:8501`, talking to the backend at `http://127.0.0.1:8000`.
+The app will be available at `http://localhost:8501`. By default it talks to the backend at `http://127.0.0.1:8000`; to point it at a different backend (e.g. a deployed one), set an `API_URL` environment variable before running Streamlit.
 
 ---
 
@@ -111,9 +109,22 @@ The app will be available at `http://localhost:8501`, talking to the backend at 
 2. The frontend sends a request to the backend's `/analyze/{handle}` endpoint.
 3. The backend fetches the user's profile, rating history, and full submission history from the Codeforces API.
 4. `analyzer.py` computes per-tag success rates across all submissions, filtering out tags with too few attempts to be statistically meaningful, and ranks the top and bottom performing tags.
-5. `recommender.py` filters the global problem set to unsolved problems within a target rating window, prioritizing the user's weak tags.
+5. `recommender.py` filters the global problem set to unsolved problems within a target rating window, prioritizing the user's weak tags, and falls back to the average rating of the user's solved problems if they have no contest rating.
 6. `ai_coach.py` builds a structured prompt from the statistics and sends it to Groq via LangChain, generating a Markdown-formatted coaching report.
 7. The backend returns everything as one JSON response; the frontend renders the profile metrics, the AI report, and the recommended problems.
+
+---
+
+## Deployment
+
+This project is deployed as two independent services, since the frontend and backend run as separate processes:
+
+- **Backend (FastAPI)** — deployed on [Render](https://render.com), running `uvicorn main:app --host 0.0.0.0 --port $PORT`. Requires `GROQ_API_KEY` set as an environment variable in Render's dashboard.
+- **Frontend (Streamlit)** — deployed on [Streamlit Community Cloud](https://streamlit.io/cloud), connected directly to this GitHub repo. Requires `API_URL` set in Streamlit Cloud's Secrets, pointing to the deployed backend's URL.
+
+CORS is enabled on the backend (`fastapi.middleware.cors.CORSMiddleware`) so the deployed Streamlit app, on a different domain, can call it from the browser.
+
+Note: the free Render tier spins down after inactivity, so the first request after idle time can take 30–60 seconds to respond.
 
 ---
 
@@ -125,7 +136,3 @@ The app will be available at `http://localhost:8501`, talking to the backend at 
 - Planned: a RAG-based concept explainer, using local sentence-transformer embeddings and a ChromaDB vector store, to ground topic explanations in a curated knowledge base rather than relying purely on the LLM's parametric memory.
 
 ---
-
-## License
-
-MIT
