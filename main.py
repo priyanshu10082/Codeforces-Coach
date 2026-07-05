@@ -10,6 +10,13 @@ load_dotenv()
 
 app = FastAPI(title="AI Codeforces Coach API")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/analyze/{handle}")
 def analyze(handle: str):
     info = get_user_info(handle)
