@@ -1,9 +1,7 @@
 import random
 
 def get_recommendations(problemset, user_summary, count=10):
-    """
-    Selects `count` problems for the user based on their weaknesses and rating.
-    """
+    """Selects `count` problems for the user based on their weaknesses and rating."""
     if not problemset or 'problems' not in problemset:
         return []
 
@@ -13,8 +11,19 @@ def get_recommendations(problemset, user_summary, count=10):
     # Determine target rating range
     user_rating = user_summary.get('rating', 800)
     if not isinstance(user_rating, int):
-        user_rating = 800
-        
+        # No contest rating available — fall back to average rating of solved problems
+        rating_lookup = {
+            f"{p.get('contestId')}{p.get('index')}": p.get('rating')
+            for p in problems
+        }
+        solved_ratings = [rating_lookup.get(pid) for pid in solved]
+        solved_ratings = [r for r in solved_ratings if r]  # drop None/0
+
+        if solved_ratings:
+            user_rating = round(sum(solved_ratings) / len(solved_ratings))
+        else:
+            user_rating = 800
+
     min_rating = user_rating
     max_rating = user_rating + 300
 

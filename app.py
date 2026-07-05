@@ -1,14 +1,12 @@
 import streamlit as st
 from dotenv import load_dotenv
+import requests
 import os
-
-from cf_api import get_user_info, get_user_rating_history, get_user_submissions, get_problemset
-from analyzer import analyze_user_data
-from recommender import get_recommendations
-from ai_coach import get_coach_insights
 
 # Load environment variables
 load_dotenv()
+
+API_URL = "http://127.0.0.1:8000"
 
 st.set_page_config(page_title="AI Codeforces Coach", page_icon="🤖", layout="wide")
 
@@ -22,34 +20,32 @@ with st.sidebar:
     analyze_btn = st.button("Analyze Profile")
     
     st.markdown("---")
-    st.markdown("**Note:** This app uses LangChain and Groq. Make sure your `.env` file has a valid `GROQ_API_KEY`.")
-
+    
 if analyze_btn and handle:
-    if not os.environ.get("GROQ_API_KEY"):
-        st.error("GROQ_API_KEY is missing. Please add it to your .env file.")
-        st.stop()
-
-    with st.spinner(f"Fetching data from Codeforces for {handle}..."):
-        info = get_user_info(handle)
-        if not info:
-            st.error(f"Could not fetch profile for user: {handle}. Please check the handle.")
-            st.stop()
-            
-        history = get_user_rating_history(handle)
-        submissions = get_user_submissions(handle)
-        problemset = get_problemset()
-
-    with st.spinner("Analyzing performance patterns..."):
-        user_summary = analyze_user_data(info, history, submissions)
-        if "error" in user_summary:
-            st.error(user_summary["error"])
+    with st.spinner(f"Analyzing profile for {handle}..."):
+        try:
+            response = requests.get(f"{API_URL}/analyze/{handle}", timeout=60)
+            # return {
+            #     "info": info,
+            #     "user_summary": user_summary,
+            #     "recommended_problems": recommended_problems,
+            #     "ai_report": ai_report,
+            # }
+        except requests.exceptions.RequestException as e:
+            st.error(f"Could not reach the API. Is it running? ({e})")
             st.stop()
 
-    with st.spinner("Selecting optimal practice problems..."):
-        recommended_problems = get_recommendations(problemset, user_summary, count=10)
+        if response.status_code != 200:
+            detail = response.json().get("detail", "Something went wrong.")
+            st.error(detail)
+            st.stop()
 
-    with st.spinner("Your AI Mentor is reviewing your profile and writing a report..."):
-        ai_report = get_coach_insights(user_summary, recommended_problems)
+        data = response.json()
+
+    info = data["info"]
+    user_summary = data["user_summary"]
+    recommended_problems = data["recommended_problems"]
+    ai_report = data["ai_report"]
 
     # --- Display Results ---
     st.success("Analysis Complete!")

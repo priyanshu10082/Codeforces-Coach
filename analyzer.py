@@ -1,7 +1,5 @@
 def analyze_user_data(info, history, submissions):
-    """
-    Analyzes raw Codeforces data to generate a structured summary of the user's performance.
-    """
+    """Analyzes raw Codeforces data to generate a structured summary of the user's performance."""
     if not submissions:
         return {"error": "No submissions found."}
 
