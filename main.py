@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from cf_api import get_user_info, get_user_rating_history, get_user_submissions, get_problemset
