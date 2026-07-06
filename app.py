@@ -47,8 +47,38 @@ if analyze_btn and handle:
     recommended_problems = data["recommended_problems"]
     ai_report = data["ai_report"]
 
+    # Fetch progress since last visit
+    try:
+        progress_response = requests.get(f"{API_URL}/progress/{handle}", timeout=30)
+        progress_data = progress_response.json() if progress_response.status_code == 200 else None
+    except requests.exceptions.RequestException:
+        progress_data = None
+
     # --- Display Results ---
     st.success("Analysis Complete!")
+
+    # --- Progress Since Last Visit ---
+    if progress_data and progress_data.get("has_previous"):
+        st.subheader("📈 Progress Since Last Check-In")
+        col_a, col_b = st.columns(2)
+
+        rating_delta = progress_data.get("rating_delta")
+        solved_delta = progress_data.get("solved_delta")
+
+        col_a.metric(
+            "Rating",
+            info.get("rating", "Unrated"),
+            delta=rating_delta if rating_delta is not None else None,
+        )
+        col_b.metric(
+            "Problems Solved",
+            user_summary.get("unique_problems_solved", 0),
+            delta=solved_delta,
+        )
+        st.markdown("---")
+    elif progress_data and not progress_data.get("has_previous"):
+        st.info("This is your first check-in — come back later to see your progress over time!")
+        st.markdown("---")
     
     # 1. Profile Overview
     st.subheader(f"Profile: {info.get('handle')}")
