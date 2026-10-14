@@ -3,6 +3,16 @@ from dotenv import load_dotenv
 import requests
 import os
 
+st.set_page_config(page_title="AI Codeforces Coach", page_icon="🤖", layout="wide")
+
+hide_streamlit_style = """
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+</style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # Load environment variables
 load_dotenv()
 
